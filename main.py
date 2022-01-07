@@ -98,7 +98,7 @@ async def main():
     mqtt_task = asyncio.create_task(update_state_loop(microtemp_api_con), name="mqtt_task")
     websocket_task = asyncio.create_task(microtemp_websocket.connect_await_incoming(handle_websocket_msg), name="websocket_task")
 
-    await asyncio.gather(mqtt_task, websocket_task, return_exceptions=True)
+    await asyncio.gather(mqtt_task, websocket_task)
 
 
 

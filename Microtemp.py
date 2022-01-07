@@ -8,7 +8,7 @@ import websockets.client as websocket_client
 import random
 from math import floor
 from urllib.parse import quote
-from MqttRelay import MQTTClient
+from MqttRelay import MQTTClient, MqttConnector
 from typing import Callable, Dict
 import asyncio
 from dacite import from_dict
@@ -293,7 +293,7 @@ class ApiConnection:
 
 
 class Websocket:
-    def __init__(self, api_con: ApiConnection, mqtt_con: MQTTClient):
+    def __init__(self, api_con: ApiConnection, mqtt_con: MqttConnector):
         self.api_con = api_con
         self.mqtt_con = mqtt_con
         self.reconnect_attempts: int = 0
