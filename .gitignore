@@ -1,0 +1,6 @@
+/venv
+/__pycache__
+min.json
+response.json
+tmp.py
+conf.py
