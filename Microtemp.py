@@ -107,18 +107,7 @@ class Thermostat:
 
 
 class ApiConnection:
-    session_id: str
-    new_account: bool
-    error_code: int
-    role_type: int
-    customer_id: int
-    email: str
-    language: str
-    accepted_toc: bool
-    connected: bool
-    failed_reconnections: int
-    _headers: dict = field(default_factory=dict)
-
+    
     def __init__(self, username: str, password: str) -> None:
         self.username = username
         self.password = password
