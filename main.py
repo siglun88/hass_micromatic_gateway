@@ -6,7 +6,7 @@ import json
 import time
 from typing import Dict, List
 import logging
-from conf import hass_config_prefix, microtemp_password, microtemp_username, mqtt_boker, mqtt_password, mqtt_port, mqtt_username
+from conf import microtemp_password, microtemp_username, mqtt_boker, mqtt_password, mqtt_port, mqtt_username
 
 logging_level = "INFO"
 logger = logging.getLogger("MQTT_MicrotempGateway")
@@ -19,106 +19,10 @@ ch.setFormatter(log_format)
 logger.addHandler(ch)
 
 
-
-
-
-# Different types of registers to keep track on registered thermostats and their associated topics.
+# Thermostat registery. Could probably be a part of the Thermostat dataclass...
 thermostats: Dict[str, Microtemp.Thermostat] = {}
-mqtt_subsriptions: List[str] = []
-mqtt_availability_topics: Dict[str, str] = {}
-mqtt_command_topics: Dict[str, str] = {}
-mqtt_state_topics: Dict[str, str] = {}
 
-
-async def get_all_thermostats(api_con: Microtemp.ApiConnection):
-    logger.debug("Fetching thermostats info from API.")
-    response = await api_con.get_thermostats()
-    for i in response:
-        thermo = from_dict(data_class=Microtemp.Thermostat, data=i)
-        thermostats[i['SerialNumber']] = thermo
-        logger.debug(f"Found thermostat with serialnumber {i['SerialNumber']}. Thermostat added to registery.")
-
-
-async def mqtt_publish_configs(mqtt_con: MqttRelay.MQTTClient, mqtt_sub: MqttRelay.MQTTClient):
-    for item in thermostats:
-
-        topic = f"{hass_config_prefix}/climate/micromatic_thermostat_{thermostats[item].SerialNumber}/config"
-        availability_topic = f"{hass_config_prefix}/climate/micromatic_thermostat_{thermostats[item].SerialNumber}/available"
-        state_topic = f"{hass_config_prefix}/climate/micromatic_thermostat_{thermostats[item].SerialNumber}/state"
-        command_topic = f"{hass_config_prefix}/climate/micromatic_thermostat_{thermostats[item].SerialNumber}/set"
-
-        mqtt_availability_topics[thermostats[item].SerialNumber] = availability_topic
-        mqtt_state_topics[thermostats[item].SerialNumber] = state_topic
-        mqtt_command_topics[thermostats[item].SerialNumber] = command_topic
-
-        payload = {
-            "availability_topic": f"{availability_topic}",
-            "current_temperature_template": "{{ value_json.current_temperature }}",
-            "current_temperature_topic": f"{state_topic}",
-            "device": {
-                "identifiers": f"{thermostats[item].SerialNumber}",
-                "manufacturer": "Micromatic",
-                "name": f"Micromatic Thermostat {thermostats[item].SerialNumber}",
-                "model": "MSD4"
-            },
-            "initial": 22,
-            "icon": "mdi:thermostat",
-            "max_temp": 32.5,
-            "min_temp": 12.0,
-            "mode_command_topic": f"{command_topic}",
-            "mode_command_template": f"{{% set command = {{\"unique_id\": \"{thermostats[item].SerialNumber}\", \"mode\": value }} %}} {{{{ command|to_json }}}}",
-            "mode_state_template": "{{ value_json.mode }}",
-            "mode_state_topic": f"{state_topic}",
-            "modes": ["auto", "heat", "off"],
-            "object_id": f"micromatic_thermostat_{thermostats[item].SerialNumber}",
-            "precicion": 0.5,
-            "temperature_command_topic": f"{command_topic}",
-            "temperature_command_template": f"{{% set command = {{\"unique_id\": \"{thermostats[item].SerialNumber}\", \"target_temperature\": value | round(1), \"mode\": \"heat\" }} %}} {{{{ command|to_json }}}}",
-            "temperature_state_template": "{{ value_json.target_temperature }}",
-            "temperature_state_topic": f"{state_topic}",
-            "temperature_unit": "c",
-            "temp_step": 0.5,
-            "unique_id": f"{thermostats[item].SerialNumber}",
-            "name": f"Micromatic Thermostat {thermostats[item].GroupName}"
-        }
-        payload = json.dumps(payload)
-
-        logger.info(f"Publishing thermostat config to mqtt topic {topic}")
-        logger.debug(f"Payload:\n{payload}")
-        mqtt_con.publish(topic, payload, qos=0, retain=True)
-        mqtt_sub.subscribe(command_topic)
-
-async def publish_availability(mqtt_con: MqttRelay.MQTTClient, state: str, serialnumber: str):
-        if serialnumber == "all":
-            for key in mqtt_availability_topics:
-                topic = mqtt_availability_topics[key]
-                logger.debug(f"Published availability mqtt message to topic {topic}. Availability state: {state}")
-                mqtt_con.publish(topic, payload=state, qos=0)
-
-        else:
-            topic = mqtt_availability_topics[serialnumber]
-            logger.debug(f"Published availability mqtt message to topic {topic}. Availability state: {state}")
-            mqtt_con.publish(topic, payload=state, qos=0)
-
-
-async def update_publish_state(mqtt_con: MqttRelay.MQTTClient, serialnumber: str):
-    if serialnumber == "all":
-        for key in mqtt_state_topics:
-                topic = mqtt_state_topics[key]
-                thermostat = thermostats[key]
-
-                hass_state = await thermostat.to_hass_state()
-                logger.debug(f"Published updated state to mqtt topic {topic}. New state:\n{hass_state}")
-                mqtt_con.publish(topic, payload=hass_state, qos=0)
-    else:
-        topic = mqtt_state_topics[serialnumber]
-        thermostat = thermostats[serialnumber]
-
-        hass_state = await thermostat.to_hass_state()
-        logger.debug(f"Published updated state to mqtt topic {topic}. New state:\n{hass_state}")
-        mqtt_con.publish(topic, payload=hass_state, qos=0, retain=True)
-
-async def handle_websocket_msg(message, mqtt_con: MqttRelay.MQTTClient):
+async def handle_websocket_msg(message, mqtt_con: MqttRelay.MqttConnector):
     message = json.loads(message)
     if not message:
         return
@@ -130,16 +34,16 @@ async def handle_websocket_msg(message, mqtt_con: MqttRelay.MQTTClient):
 
             thermo = from_dict(data_class=Microtemp.Thermostat, data=item['Thermostat'])
             thermostats[item['Thermostat']['SerialNumber']] = thermo
-            logger.debug(f"Recieved incoming message on websocket for thermostat with serial number {thermo.SerialNumber}.")
+            logger.debug("Recieved incoming message on websocket for thermostat with serial number %s.", thermo.SerialNumber)
 
-            await update_publish_state(mqtt_con, item['Thermostat']['SerialNumber'])
-            await publish_availability(mqtt_con, "online", item['Thermostat']['SerialNumber'])
+            await mqtt_con.update_publish_state(item['Thermostat']['SerialNumber'], thermostats)
+            await mqtt_con.publish_availability("online", item['Thermostat']['SerialNumber'])
 
 
 async def handle_mqtt_message(client, topic, payload, qos, properties):
     # Handle incoming MQTT messages. Change Thermostat change-flag to True.
 
-    logger.debug(f"Recieved message on topic {topic}:\n{payload}")
+    logger.debug("Recieved message on topic %s:\n%s", topic, payload)
 
     modes = {
             "auto": 1,
@@ -161,7 +65,8 @@ async def handle_mqtt_message(client, topic, payload, qos, properties):
 
     
 async def update_state_loop(api_con: Microtemp.ApiConnection):
-    # Checks if any of the thermostats has updated state. And publish new state to MQTT.
+    # Checks if any of the thermostats has updated state. And publish new state to MQTT
+
     while True:
         for key in thermostats:
             thermostat = thermostats[key]
@@ -174,20 +79,20 @@ async def update_state_loop(api_con: Microtemp.ApiConnection):
         await asyncio.sleep(0.4)
 
 async def main():
-    subClient = await MqttRelay.sub_client(mqtt_boker, mqtt_port, mqtt_username, mqtt_password)
-    pubClient = await MqttRelay.pub_client(mqtt_boker, mqtt_port, mqtt_username, mqtt_password)
+    mqtt_client = MqttRelay.MqttConnector(mqtt_boker, mqtt_port, mqtt_username, mqtt_password)
+    await mqtt_client.connect(on_message=handle_mqtt_message)
 
     microtemp_api_con = Microtemp.ApiConnection(username=microtemp_username, password=microtemp_password)
     microtemp_api_con.authenticate()
 
-    microtemp_websocket = Microtemp.Websocket(microtemp_api_con, pubClient)
+    microtemp_websocket = Microtemp.Websocket(microtemp_api_con, mqtt_client)
 
-    await get_all_thermostats(microtemp_api_con)
-    await mqtt_publish_configs(pubClient, subClient)
+    await microtemp_api_con.get_all_thermostats(thermostats)
+    await mqtt_client.mqtt_publish_configs(thermostats)
     
     time.sleep(2)
-    await update_publish_state(pubClient, "all")
-    subClient.on_message = handle_mqtt_message
+    await mqtt_client.update_publish_state("all", thermostats)
+
 
     
     mqtt_task = asyncio.create_task(update_state_loop(microtemp_api_con), name="mqtt_task")

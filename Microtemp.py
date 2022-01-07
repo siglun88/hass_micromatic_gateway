@@ -9,7 +9,7 @@ import random
 from math import floor
 from urllib.parse import quote
 from MqttRelay import MQTTClient
-from typing import Callable
+from typing import Callable, Dict
 import asyncio
 from dacite import from_dict
 
@@ -293,6 +293,14 @@ class ApiConnection:
                 thermostats.append(ii)
 
         return thermostats
+    
+    async def get_all_thermostats(self, thermostats: Dict[str, Thermostat]):
+        logger.debug("Fetching thermostats info from API.")
+        response = await self.get_thermostats()
+        for i in response:
+            thermo = from_dict(data_class=Thermostat, data=i)
+            thermostats[i['SerialNumber']] = thermo
+            logger.debug('Found thermostat with serialnumber %s. Thermostat added to registery.', i["SerialNumber"])
 
 
 class Websocket:
