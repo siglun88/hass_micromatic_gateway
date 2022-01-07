@@ -107,7 +107,7 @@ class Thermostat:
 
 
 class ApiConnection:
-    
+
     def __init__(self, username: str, password: str) -> None:
         self.username = username
         self.password = password
@@ -296,6 +296,7 @@ class Websocket:
     def __init__(self, api_con: ApiConnection, mqtt_con: MQTTClient):
         self.api_con = api_con
         self.mqtt_con = mqtt_con
+        self.reconnect_attempts: int = 0
 
     async def connect_await_incoming(self, handle_websocket_msg: Callable):
         websocket_details = await self.api_con.negotiate()
@@ -327,7 +328,14 @@ class Websocket:
                     message = await asyncio.wait_for(websocket.recv(), 900)
                     await handle_websocket_msg(message, self.mqtt_con)
                 except asyncio.exceptions.TimeoutError:
-                    logger.info("Websocket connection timed out. Attempting to reconnect.")
+                    self.reconnect_attempts += 1
+                    if self.reconnect_attempts > 5:
+                        logger.info("Unable to reconnect to websocket. Closing...")
+                        loop = asyncio.get_event_loop()
+                        await loop.shutdown_default_executor()
+                        await loop.stop()
+                        
+                    logger.info("Websocket connection timed out. Attempting to reconnect. Attempts: %d", self.reconnect_attempts)
                     asyncio.create_task(self.connect_await_incoming(handle_websocket_msg), name="websocket_task")
                     break
 
