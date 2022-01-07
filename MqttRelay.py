@@ -2,6 +2,8 @@ from gmqtt import Client as MQTTClient
 import logging
 
 
+# Guess only 1 client is needed as combinded pub/sub, will fix later....
+
 logger = logging.getLogger("MQTT_MicrotempGateway")
 
 def on_connect(client, flags, rc, properties):

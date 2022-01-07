@@ -1,5 +1,4 @@
 import asyncio
-from MqttRelay import pub_client, sub_client
 import MqttRelay
 import Microtemp
 from dacite import from_dict
@@ -175,8 +174,8 @@ async def update_state_loop(api_con: Microtemp.ApiConnection):
         await asyncio.sleep(0.4)
 
 async def main():
-    subClient = await sub_client(mqtt_boker, mqtt_port, mqtt_username, mqtt_password)
-    pubClient = await pub_client(mqtt_boker, mqtt_port, mqtt_username, mqtt_password)
+    subClient = await MqttRelay.sub_client(mqtt_boker, mqtt_port, mqtt_username, mqtt_password)
+    pubClient = await MqttRelay.pub_client(mqtt_boker, mqtt_port, mqtt_username, mqtt_password)
 
     microtemp_api_con = Microtemp.ApiConnection(username=microtemp_username, password=microtemp_password)
     microtemp_api_con.authenticate()
