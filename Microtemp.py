@@ -159,6 +159,8 @@ class ApiConnection:
         self.accepted_toc = json_response['AcceptedTOC']
         self.connected = True
 
+        logger.info("Connected to Micromatic API.")
+
     async def get(self, url: str, params: dict = None) -> dict:
         """
             Async method for processing GET requests to the Microtemp API.
