@@ -1,3 +1,4 @@
+from __future__ import annotations
 import json
 import time
 from dataclasses import asdict, dataclass, field
@@ -8,10 +9,14 @@ import websockets.client as websocket_client
 import random
 from math import floor
 from urllib.parse import quote
-from MqttRelay import MQTTClient, MqttConnector
 from typing import Callable, Dict
 import asyncio
 from dacite import from_dict
+
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from MqttRelay import MqttConnector
 
 
 logger = logging.getLogger("MQTT_MicrotempGateway")
