@@ -30,7 +30,6 @@ class MqttConnector:
 
     def on_disconnect(self, client, packet, exc=None):
         logger.info("Disconnected from MQTT broker.")
-        self.publish_availability("offline", "all")
 
     def on_subscribe(self, client, mid, qos, properties):
         # Callback when subscribing.

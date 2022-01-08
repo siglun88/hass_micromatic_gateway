@@ -91,6 +91,7 @@ async def main():
     await mqtt_client.mqtt_publish_configs(thermostats)
     
     time.sleep(2)
+    await mqtt_client.publish_availability("online", "all")
     await mqtt_client.update_publish_state("all", thermostats)
 
 
