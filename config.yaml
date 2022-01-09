@@ -1,6 +1,6 @@
 name: "MQTT Micromatic Gateway"
 description: "A MQTT gateway making it possible to add Micromatic thermostats to Home Assistant!"
-version: "1.0.2"
+version: "1.0.3"
 slug: "hass_micromatic_gateway"
 arch:
   - aarch64
