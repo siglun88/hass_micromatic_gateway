@@ -285,7 +285,7 @@ class ApiConnection:
 
             for ii in i['Thermostats']:
                 thermostats.append(ii)
-
+                
         return thermostats
     
     async def get_all_thermostats(self, thermostats: Dict[str, Thermostat]):
@@ -302,6 +302,7 @@ class Websocket:
         self.api_con = api_con
         self.mqtt_con = mqtt_con
         self.reconnect_attempts: int = 0
+        self.last_reconnect_attempt: datetime.datetime = datetime.datetime.now()
 
     async def connect_await_incoming(self, handle_websocket_msg: Callable):
         websocket_details = await self.api_con.negotiate()
@@ -311,7 +312,6 @@ class Websocket:
         tid = floor(random.random() * 10) + 1
         url = f"wss://min.microtemp.no/gatewaynotification/connect?transport=webSockets&clientProtocol=2.1&connectionToken={quoted_token}&tid={tid}"
 
-        
         async with websocket_client.connect(url) as websocket:
             params = {
                 "transport": "webSockets",
@@ -330,10 +330,18 @@ class Websocket:
             logger.info("Connected to Micromatic websocket.")
             while True:
                 try:
-                    message = await asyncio.wait_for(websocket.recv(), 900)
+                    message = await asyncio.wait_for(websocket.recv(), 1)
                     await handle_websocket_msg(message, self.mqtt_con)
                 except asyncio.exceptions.TimeoutError:
-                    self.reconnect_attempts += 1
+                    if datetime.datetime.now() - self.last_reconnect_attempt <= datetime.timedelta(minutes=5):
+                        self.reconnect_attempts += 1
+                        self.last_reconnect_attempt = datetime.datetime.now()
+                    else:
+                        # Reset the attempt counter if more than 5 mins since last timeout.
+                        self.reconnect_attempts = 1
+                        self.last_reconnect_attempt = datetime.datetime.now()
+
+
                     if self.reconnect_attempts > 5:
                         logger.info("Unable to reconnect to websocket. Closing...")
                         loop = asyncio.get_event_loop()
