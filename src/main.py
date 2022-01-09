@@ -4,12 +4,21 @@ import Microtemp
 from dacite import from_dict
 import json
 import time
-from typing import Dict, List
+from typing import Dict
 import logging
-from conf import microtemp_password, microtemp_username, mqtt_boker, mqtt_password, mqtt_port, mqtt_username
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--mqtt_broker", help="IP address or hostname to MQTT broker", required=True)
+parser.add_argument("--mqtt_port", help="MQTT broker port", required=True)
+parser.add_argument("--mqtt_username", help="MQTT username", required=True)
+parser.add_argument("--mqtt_password", help="MQTT password", required=True)
+parser.add_argument("--config_prefix", help="MQTT config prefix for Home Assistant", required=True, default="homeassistant")
+parser.add_argument("--micromatic_username", help="Micromatic username", required=True)
+parser.add_argument("--micromatic_password", help="Micromatic password", required=True)
 
 logging_level = "INFO"
-logger = logging.getLogger("MQTT_MicrotempGateway")
+logger = logging.getLogger("MQTT_MicromaticGateway")
 logger.setLevel(logging_level)
 
 ch = logging.StreamHandler()
@@ -79,10 +88,11 @@ async def update_state_loop(api_con: Microtemp.ApiConnection):
         await asyncio.sleep(0.4)
 
 async def main():
-    mqtt_client = MqttRelay.MqttConnector(mqtt_boker, mqtt_port, mqtt_username, mqtt_password)
+    args = parser.parse_args()
+    mqtt_client = MqttRelay.MqttConnector(args.mqtt_broker, args.mqtt_port, args.mqtt_username, args.mqtt_password, args.config_prefix)
     await mqtt_client.connect(on_message=handle_mqtt_message)
 
-    microtemp_api_con = Microtemp.ApiConnection(username=microtemp_username, password=microtemp_password)
+    microtemp_api_con = Microtemp.ApiConnection(username=args.micromatic_username, password=args.micromatic_password)
     microtemp_api_con.authenticate()
 
     microtemp_websocket = Microtemp.Websocket(microtemp_api_con, mqtt_client)
@@ -106,3 +116,4 @@ async def main():
 if __name__ == "__main__":
 
     asyncio.run(main(), debug=False)
+

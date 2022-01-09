@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from MqttRelay import MqttConnector
 
 
-logger = logging.getLogger("MQTT_MicrotempGateway")
+logger = logging.getLogger("MQTT_MicromaticGateway")
 
 
 @dataclass
@@ -170,7 +170,7 @@ class ApiConnection:
             return: HTTP reponse [dict] if get request was successful else RuntimeError is raised
         """
 
-        logger.debug(f"Sending GET request to Micromatic API.\nURL: {url}\nParams: {params}")
+        logger.debug("Sending GET request to Micromatic API.\nURL: %s\nParams: %s", url, params)
         response = requests.get(url=url, params=params, headers=self._headers)
 
         if not response.ok:
@@ -203,7 +203,7 @@ class ApiConnection:
             return: HTTP reponse [dict] if POST request was successful else RuntimeError is raised
         """
 
-        logger.debug(f"Sending POST request to Micromatic API.\nURL: {url}\nParams: {params}\nPayload: {payload}")
+        logger.debug("Sending POST request to Micromatic API.\nURL: %s\nParams: %s\nPayload: %s", url, params, payload)
 
         response = requests.post(
             url=url, data=payload, headers=self._headers, params=params)
@@ -227,7 +227,7 @@ class ApiConnection:
         """
             Method to obtain connection token for the websocket interface.
             Returns dictionary with websocket connection details (including connection token) that will be used to initiate
-            websocket instance (WebsocketConnection).
+            websocket instance.
         """
         url = "https://min.microtemp.no/gatewaynotification/negotiate"
         params = {
@@ -247,7 +247,7 @@ class ApiConnection:
             "serialnumber": serialnumber
         }
 
-        logger.debug(f"Sending POST request to Micromatic API.\nURL: {url}\nParams: {params}\nPayload: {payload}")
+        logger.debug("Sending POST request to Micromatic API.\nURL: %s\nParams: %s\nPayload: %s", url, params, payload)
         response = requests.post(
             url=url, data=payload, headers=self._headers, params=params)
 
@@ -269,7 +269,7 @@ class ApiConnection:
 
     async def get_thermostats(self) -> list:
         """
-            Method to obtain get information of the thermostats.
+            Method to get information of the thermostats.
         """
         thermostats: list = []
         url = "https://min.microtemp.no/api/thermostats"
@@ -319,18 +319,16 @@ class Websocket:
                 "connectionToken": connection_token
             }
 
-            
-
             # Notify server to start sending notifications on the websocket connection.
             await self.api_con.get("https://min.microtemp.no/gatewaynotification/start", params)
 
             # Authenticate the client on the websocket by sending the session ID.
             await websocket.send(session_id)
-            logger.debug(f"Connected to websocket url {url}")
+            logger.debug("Connected to websocket url %s", url)
             logger.info("Connected to Micromatic websocket.")
             while True:
                 try:
-                    message = await asyncio.wait_for(websocket.recv(), 1)
+                    message = await asyncio.wait_for(websocket.recv(), 900)
                     await handle_websocket_msg(message, self.mqtt_con)
                 except asyncio.exceptions.TimeoutError:
                     if datetime.datetime.now() - self.last_reconnect_attempt <= datetime.timedelta(minutes=5):

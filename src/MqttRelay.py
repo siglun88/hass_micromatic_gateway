@@ -1,20 +1,20 @@
 from gmqtt import Client as MQTTClient
 import logging
 import json
-from conf import hass_config_prefix
 from typing import Callable, Dict, List
 from Microtemp import Thermostat
 
-logger = logging.getLogger("MQTT_MicrotempGateway")
+logger = logging.getLogger("MQTT_MicromaticGateway")
 
 class MqttConnector:
 
-    def __init__(self, broker: str, port: str, username: str, password: str):
+    def __init__(self, broker: str, port: str, username: str, password: str, config_prefix: str):
         self.broker = broker
         self.port = port
         self.username = username
         self.password = password
         self.client = None
+        self.config_prefix = config_prefix
         self.subsriptions: List[str] = []
         self.availability_topics: Dict[str, str] = {}
         self.command_topics: Dict[str, str] = {}
@@ -47,10 +47,10 @@ class MqttConnector:
 
         for item in thermostats:
 
-            topic = f"{hass_config_prefix}/climate/micromatic_thermostat_{thermostats[item].SerialNumber}/config"
-            availability_topic = f"{hass_config_prefix}/climate/micromatic_thermostat_{thermostats[item].SerialNumber}/available"
-            state_topic = f"{hass_config_prefix}/climate/micromatic_thermostat_{thermostats[item].SerialNumber}/state"
-            command_topic = f"{hass_config_prefix}/climate/micromatic_thermostat_{thermostats[item].SerialNumber}/set"
+            topic = f"{self.config_prefix}/climate/micromatic_thermostat_{thermostats[item].SerialNumber}/config"
+            availability_topic = f"{self.config_prefix}/climate/micromatic_thermostat_{thermostats[item].SerialNumber}/available"
+            state_topic = f"{self.config_prefix}/climate/micromatic_thermostat_{thermostats[item].SerialNumber}/state"
+            command_topic = f"{self.config_prefix}/climate/micromatic_thermostat_{thermostats[item].SerialNumber}/set"
 
             self.availability_topics[thermostats[item].SerialNumber] = availability_topic
             self.state_topics[thermostats[item].SerialNumber] = state_topic

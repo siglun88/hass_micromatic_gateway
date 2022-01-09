@@ -1,0 +1,26 @@
+name: "MQTT Micromatic Gateway"
+description: "A MQTT gateway making it possible to add Micromatic thermostats to Home Assistant!"
+version: "1.0.2"
+slug: "hass_micromatic_gateway"
+arch:
+  - aarch64
+  - amd64
+  - armhf
+  - armv7
+  - i386
+options:
+  mqtt_broker_address: "homeassistant"
+  mqtt_broker_port: 1883
+  mqtt_username: "your_username"
+  mqtt_password: "your_password"
+  mqtt_config_topic_prefix: "homeassistant"
+  micromatic_username: "your_micromatic_username"
+  micromatic_password: "your_micromatic_password"
+schema:
+  mqtt_broker_address: str
+  mqtt_broker_port: int
+  mqtt_username: str
+  mqtt_password: str
+  mqtt_config_topic_prefix: str
+  micromatic_username: str
+  micromatic_password: str
