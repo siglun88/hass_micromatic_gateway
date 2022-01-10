@@ -8,15 +8,6 @@ from typing import Dict
 import logging
 import argparse
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--mqtt_broker", help="IP address or hostname to MQTT broker", required=True)
-parser.add_argument("--mqtt_port", help="MQTT broker port", required=True)
-parser.add_argument("--mqtt_username", help="MQTT username", required=True)
-parser.add_argument("--mqtt_password", help="MQTT password", required=True)
-parser.add_argument("--config_prefix", help="MQTT config prefix for Home Assistant", required=True, default="homeassistant")
-parser.add_argument("--micromatic_username", help="Micromatic username", required=True)
-parser.add_argument("--micromatic_password", help="Micromatic password", required=True)
-
 logging_level = "INFO"
 logger = logging.getLogger("MQTT_MicromaticGateway")
 logger.setLevel(logging_level)
@@ -88,7 +79,16 @@ async def update_state_loop(api_con: Microtemp.ApiConnection):
         await asyncio.sleep(0.4)
 
 async def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--mqtt_broker", help="IP address or hostname to MQTT broker", required=True)
+    parser.add_argument("--mqtt_port", help="MQTT broker port", required=True)
+    parser.add_argument("--mqtt_username", help="MQTT username", required=True)
+    parser.add_argument("--mqtt_password", help="MQTT password", required=True)
+    parser.add_argument("--config_prefix", help="MQTT config prefix for Home Assistant", required=True, default="homeassistant")
+    parser.add_argument("--micromatic_username", help="Micromatic username", required=True)
+    parser.add_argument("--micromatic_password", help="Micromatic password", required=True)
     args = parser.parse_args()
+    
     mqtt_client = MqttRelay.MqttConnector(args.mqtt_broker, args.mqtt_port, args.mqtt_username, args.mqtt_password, args.config_prefix)
     await mqtt_client.connect(on_message=handle_mqtt_message)
 
