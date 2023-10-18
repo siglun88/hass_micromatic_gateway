@@ -1,5 +1,5 @@
 dacite==1.6.0
 gmqtt==0.6.11
 requests==2.31.0
-urllib3==1.26.7
+urllib3==1.26.18
 websockets==10.1
